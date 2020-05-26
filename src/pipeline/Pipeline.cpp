@@ -34,6 +34,7 @@
 #include "kimera-vio/utils/Statistics.h"
 #include "kimera-vio/utils/Timer.h"
 #include "kimera-vio/visualizer/DisplayFactory.h"
+#include "kimera-vio/visualizer/Visualizer3D.h"
 #include "kimera-vio/visualizer/Visualizer3DFactory.h"
 
 DEFINE_bool(log_output, false, "Log output to CSV files.");
@@ -93,7 +94,9 @@ DEFINE_bool(use_lcd,
 
 namespace VIO {
 
-Pipeline::Pipeline(const VioParams& params)
+Pipeline::Pipeline(const VioParams& params,
+                   Visualizer3D::UniquePtr&& visualizer,
+                   DisplayBase::UniquePtr&& displayer)
     : backend_type_(static_cast<BackendType>(params.backend_type_)),
       stereo_camera_(nullptr),
       data_provider_module_(nullptr),
@@ -115,7 +118,7 @@ Pipeline::Pipeline(const VioParams& params)
       parallel_run_(params.parallel_run_),
       stereo_frontend_input_queue_("stereo_frontend_input_queue"),
       initialization_frontend_output_queue_(
-          "initialization_frontend_output_queue"),
+          "initialization_frontend_output_queue", false),
       backend_input_queue_("backend_input_queue"),
       display_input_queue_("display_input_queue") {
   if (FLAGS_deterministic_random_number_generator) setDeterministicPipeline();
@@ -186,7 +189,7 @@ Pipeline::Pipeline(const VioParams& params)
                                     backend_output_params,
                                     FLAGS_log_output));
   vio_backend_module_->registerOnFailureCallback(
-        std::bind(&Pipeline::signalBackendFailure, this));
+      std::bind(&Pipeline::signalBackendFailure, this));
   vio_backend_module_->registerImuBiasUpdateCallback(
       std::bind(&StereoVisionFrontEndModule::updateImuBias,
                 // Send a cref: constant reference bcs updateImuBias is const
@@ -217,11 +220,14 @@ Pipeline::Pipeline(const VioParams& params)
         //! Send ouput of visualizer to the display_input_queue_
         &display_input_queue_,
         parallel_run_,
-        VisualizerFactory::createVisualizer(
-            VisualizerType::OpenCV,
-            // TODO(Toni): bundle these three params in VisualizerParams...
-            static_cast<VisualizationType>(FLAGS_viz_type),
-            backend_type_));
+        // Use given visualizer if any
+        visualizer ? std::move(visualizer)
+                   : VisualizerFactory::createVisualizer(
+                         VisualizerType::OpenCV,
+                         // TODO(Toni): bundle these three params in
+                         // VisualizerParams...
+                         static_cast<VisualizationType>(FLAGS_viz_type),
+                         backend_type_));
     //! Register input callbacks
     vio_backend_module_->registerOutputCallback(
         std::bind(&VisualizerModule::fillBackendQueue,
@@ -242,8 +248,11 @@ Pipeline::Pipeline(const VioParams& params)
         &display_input_queue_,
         nullptr,
         parallel_run_,
-        DisplayFactory::makeDisplay(DisplayType::kOpenCV,
-                                    std::bind(&Pipeline::shutdown, this)));
+        // Use given displayer if any
+        displayer
+            ? std::move(displayer)
+            : DisplayFactory::makeDisplay(
+                  DisplayType::kOpenCV, std::bind(&Pipeline::shutdown, this)));
   }
 
   if (FLAGS_use_lcd) {
@@ -375,8 +384,8 @@ bool Pipeline::shutdownWhenFinished(const int& sleep_time_ms) {
   CHECK(vio_backend_module_);
 
   while (
-      !shutdown_ && // Loop while not explicitly shutdown.
-         is_backend_ok_ &&  // Loop while backend is fine.
+      !shutdown_ &&         // Loop while not explicitly shutdown.
+      is_backend_ok_ &&     // Loop while backend is fine.
       (!is_initialized_ ||  // Loop while not initialized
                             // Or, once initialized, data is not yet consumed.
        !(!data_provider_module_->isWorking() &&
@@ -593,9 +602,11 @@ bool Pipeline::initializeFromIMU(
             << "--------------------";
 
   // Guess pose from IMU, assumes vehicle to be static.
+  ImuAccGyrS imu_accgyrs = stereo_imu_sync_packet.getImuAccGyrs();
+  ImuAccGyr imu_accgyr = imu_accgyrs.col(imu_accgyrs.cols()-1);
   VioNavState initial_state_estimate =
       InitializationFromImu::getInitialStateEstimate(
-          stereo_imu_sync_packet.getImuAccGyr(),
+          imu_accgyr,
           imu_params_.n_gravity_,
           backend_params_->roundOnAutoInitialize_);
 
@@ -640,7 +651,7 @@ bool Pipeline::initializeOnline(
       VIO::make_unique<StereoImuSyncPacket>(
           stereo_frame,
           stereo_imu_sync_packet.getImuStamps(),
-          stereo_imu_sync_packet.getImuAccGyr(),
+          stereo_imu_sync_packet.getImuAccGyrs(),
           stereo_imu_sync_packet.getReinitPacket());
 
   FrontendOutput::ConstPtr frontend_output = nullptr;
@@ -676,9 +687,9 @@ bool Pipeline::initializeOnline(
     // TODO(Sandro): Find a way to optimize this
     // This queue is used for the the backend optimization
     const ImuStampS& imu_stamps = stereo_imu_sync_packet.getImuStamps();
-    const ImuAccGyrS& imu_accgyr = stereo_imu_sync_packet.getImuAccGyr();
+    const ImuAccGyrS& imu_accgyrs = stereo_imu_sync_packet.getImuAccGyrs();
     ImuFrontEnd::PimPtr pim =
-        imu_frontend_real.preintegrateImuMeasurements(imu_stamps, imu_accgyr);
+        imu_frontend_real.preintegrateImuMeasurements(imu_stamps, imu_accgyrs);
     // This queue is used for the backend after initialization
     VLOG(2) << "Initialization: Push input payload to Backend.";
     backend_input_queue_.push(VIO::make_unique<BackendInput>(
