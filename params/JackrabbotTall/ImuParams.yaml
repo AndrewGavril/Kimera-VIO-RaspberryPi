@@ -13,7 +13,7 @@ T_BS:
          0.0, 1.0, 0.0, 0.0,
          0.0, 0.0, 1.0, 0.0,
          0.0, 0.0, 0.0, 1.0]
-rate_hz: 200
+rate_hz: 20
 
 # inertial sensor noise model parameters (static)
 # Could not find IMU specs for JackRabbot, so multiplied Euroc IMU params by 10
