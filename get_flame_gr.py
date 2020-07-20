@@ -20,7 +20,7 @@ p = subprocess.Popen("./scripts/stereoVIOEuroc.bash -p /home/andrew/work/kimera_
 time.sleep(1)
 current_process = psutil.Process()
 kimera_process_id = int(current_process.children(recursive=True)[1].pid)
-pids = []
+pids = [str(kimera_process_id)]
 print((bcolors.OKGREEN + "{}" + bcolors.ENDC).format(kimera_process_id))
 
 with open("stereoVioPids.txt", "w+") as file:
