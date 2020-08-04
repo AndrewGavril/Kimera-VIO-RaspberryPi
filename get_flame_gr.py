@@ -17,7 +17,7 @@ if path_to_lib[-1] != '/':
     path_to_lib += "/"
 
 p = subprocess.Popen("./scripts/stereoVIOEuroc.bash -p /home/andrew/work/kimera_project/V1_01_easy".split())
-time.sleep(1)
+time.sleep(3)
 current_process = psutil.Process()
 kimera_process_id = int(current_process.children(recursive=True)[1].pid)
 pids = [str(kimera_process_id)]

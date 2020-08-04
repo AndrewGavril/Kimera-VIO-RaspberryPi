@@ -100,6 +100,7 @@ int main(int argc, char* argv[]) {
     handle_pipeline.get();
   } else {
     while (dataset_parser->spin() && vio_pipeline.spin()) {
+      LOG(INFO) << vio_pipeline.printStatistics();
       continue;
     };
     vio_pipeline.shutdown();
