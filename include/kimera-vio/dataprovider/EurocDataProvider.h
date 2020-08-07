@@ -89,6 +89,9 @@ class EurocDataProvider : public DataProviderInterface {
   bool parseCameraData(const std::string& cam_name,
                        CameraImageLists* cam_list_i);
 
+
+  void parseImages();
+
   //! Getters.
   std::string getDatasetName();
   /**
@@ -190,6 +193,9 @@ class EurocDataProvider : public DataProviderInterface {
   FrameId current_k_;
   FrameId initial_k_;  // start frame
   FrameId final_k_;    // end frame
+
+  std::vector<std::unique_ptr<Frame>> left_camera_frames_;
+  std::vector<std::unique_ptr<Frame>> right_camera_frames_;
 
   //! Flag to signal when the dataset has been parsed.
   bool dataset_parsed_ = false;

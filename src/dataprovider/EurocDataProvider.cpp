@@ -187,6 +187,7 @@ void EurocDataProvider::parse() {
     pipeline_params_.backend_params_->initial_ground_truth_state_ =
         getGroundTruthState(timestampAtFrame(initial_k_));
   }
+  parseImages();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -445,6 +446,32 @@ bool EurocDataProvider::parseCameraData(const std::string& cam_name,
   CHECK_NOTNULL(cam_list_i)
       ->parseCamImgList(dataset_path_ + "/mav0/" + cam_name, "data.csv");
   return true;
+}
+
+/* -------------------------------------------------------------------------- */
+void EurocDataProvider::parseImages() {
+  for (FrameId k = initial_k_; k <= final_k_; k++) {
+    const bool& equalize_image =
+      pipeline_params_.frontend_params_.stereo_matching_params_.equalize_image_;
+    const Timestamp& timestamp_frame_k = timestampAtFrame(k);
+    std::string left_img_filename;
+    bool available_left_img = getLeftImgName(k, &left_img_filename);
+    std::string right_img_filename;
+    bool available_right_img = getRightImgName(k, &right_img_filename);
+    if (available_left_img && available_right_img) {
+      left_camera_frames_.push_back(VIO::make_unique<Frame>(k,
+                                timestamp_frame_k,
+                                pipeline_params_.camera_params_.at(0),
+                                UtilsOpenCV::ReadAndConvertToGrayScale(
+                                    left_img_filename, equalize_image)));
+      
+      right_camera_frames_.push_back(VIO::make_unique<Frame>(k,
+                                timestamp_frame_k,
+                                pipeline_params_.camera_params_.at(1),
+                                UtilsOpenCV::ReadAndConvertToGrayScale(
+                                    right_img_filename, equalize_image)));
+    }  
+  }
 }
 
 /* -------------------------------------------------------------------------- */
