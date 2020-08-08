@@ -194,8 +194,8 @@ class EurocDataProvider : public DataProviderInterface {
   FrameId initial_k_;  // start frame
   FrameId final_k_;    // end frame
 
-  std::vector<std::unique_ptr<Frame>> left_camera_frames_;
-  std::vector<std::unique_ptr<Frame>> right_camera_frames_;
+  std::vector<Frame> left_camera_frames_;
+  std::vector<Frame> right_camera_frames_;
 
   //! Flag to signal when the dataset has been parsed.
   bool dataset_parsed_ = false;
