@@ -60,6 +60,7 @@ StereoVisionFrontEnd::StereoVisionFrontEnd(
       trackerStatusSummary_(),
       output_images_path_("./outputImages/"),
       display_queue_(display_queue),
+      keyframe_mark_count_(0),
       logger_(nullptr) {  // Only for debugging and visualization.
   if (log_output) {
     logger_ = VIO::make_unique<FrontendLogger>();
@@ -293,17 +294,18 @@ StatusStereoMeasurementsPtr StereoVisionFrontEnd::processStereoFrame(
   // This will be the info we actually care about
   SmartStereoMeasurementsUniquePtr smart_stereo_measurements = nullptr;
 
-  const bool max_time_elapsed =
+  /*const bool max_time_elapsed =
       stereoFrame_k_->getTimestamp() - last_keyframe_timestamp_ >=
-      tracker_.tracker_params_.intra_keyframe_time_ns_;
+      tracker_.tracker_params_.intra_keyframe_time_ns_;*/
   const size_t& nr_valid_features = left_frame_k->getNrValidKeypoints();
-  const bool nr_features_low =
-      nr_valid_features <= tracker_.tracker_params_.min_number_features_;
+  /*const bool nr_features_low =
+      nr_valid_features <= tracker_.tracker_params_.min_number_features_;*/
 
   // Also if the user requires the keyframe to be enforced
   LOG_IF(WARNING, stereoFrame_k_->isKeyframe()) << "User enforced keyframe!";
   // If max time elaspsed and not able to track feature -> create new keyframe
-  if (max_time_elapsed || nr_features_low || stereoFrame_k_->isKeyframe()) {
+  //if (max_time_elapsed || nr_features_low || stereoFrame_k_->isKeyframe()) {
+  if (!keyframe_mark_count_) {
     ++keyframe_count_;  // mainly for debugging
 
     VLOG(2) << "+++++++++++++++++++++++++++++++++++++++++++++++++++"
@@ -312,10 +314,10 @@ StatusStereoMeasurementsPtr StereoVisionFrontEnd::processStereoFrame(
                                          last_keyframe_timestamp_)
             << " sec.";
 
-    VLOG_IF(2, max_time_elapsed) << "Keyframe reason: max time elapsed.";
+    /*VLOG_IF(2, max_time_elapsed) << "Keyframe reason: max time elapsed.";
     VLOG_IF(2, nr_features_low)
         << "Keyframe reason: low nr of features (" << nr_valid_features << " < "
-        << tracker_.tracker_params_.min_number_features_ << ").";
+        << tracker_.tracker_params_.min_number_features_ << ").";*/
 
     double sparse_stereo_time = 0;
     if (tracker_.tracker_params_.useRANSAC_) {
@@ -405,6 +407,11 @@ StatusStereoMeasurementsPtr StereoVisionFrontEnd::processStereoFrame(
   stereoFrame_km1_ = stereoFrame_k_;
   stereoFrame_k_.reset();
   ++frame_count_;
+  if (keyframe_mark_count_ == FRAMES_BEFORE_KEYFRAME) {
+    keyframe_mark_count_ = 0;
+  } else {
+    ++keyframe_mark_count_;
+  }
   return VIO::make_unique<StatusStereoMeasurements>(
       std::make_pair(trackerStatusSummary_,
                      // TODO(Toni): please, fix this, don't use std::pair...

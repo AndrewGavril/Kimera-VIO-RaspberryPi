@@ -271,6 +271,10 @@ class StereoVisionFrontEnd {
   // Display queue
   DisplayQueue* display_queue_;
 
+  // Keyframe counters
+  unsigned int keyframe_mark_count_;
+  const static unsigned int FRAMES_BEFORE_KEYFRAME = 4;
+
   // Frontend logger.
   std::unique_ptr<FrontendLogger> logger_;
 };
