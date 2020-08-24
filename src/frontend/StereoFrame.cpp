@@ -32,7 +32,25 @@ StereoFrame::StereoFrame(const FrameId &id, const Timestamp &timestamp,
       left_frame_(left_frame), right_frame_(right_frame),
       is_rectified_(FLAGS_images_rectified), is_keyframe_(false),
       // TODO(Toni): completely useless to copy params all the time...
-      sparse_stereo_params_(stereo_matching_params), baseline_(0.0) {
+      sparse_stereo_params_(stereo_matching_params), baseline_(0.0),
+      is_B_Pose_initialized(false){
+  initialize(left_frame_.cam_param_, right_frame_.cam_param_);
+  CHECK_EQ(id_, left_frame_.id_);
+  CHECK_EQ(id_, right_frame_.id_);
+  CHECK_EQ(timestamp_, left_frame_.timestamp_);
+  CHECK_EQ(timestamp_, right_frame_.timestamp_);
+}
+
+StereoFrame::StereoFrame(const FrameId &id, const Timestamp &timestamp,
+                         const Frame &left_frame, const Frame &right_frame,
+                         const StereoMatchingParams &stereo_matching_params,
+                         StereoFrame *first_frame)
+    : id_(id), timestamp_(timestamp),
+      left_frame_(left_frame), right_frame_(right_frame),
+      is_rectified_(FLAGS_images_rectified), is_keyframe_(false),
+      sparse_stereo_params_(stereo_matching_params), baseline_(0.0), is_B_Pose_initialized(true)
+      {
+  cloneRectificationParameters(*first_frame);
   initialize(left_frame_.cam_param_, right_frame_.cam_param_);
   CHECK_EQ(id_, left_frame_.id_);
   CHECK_EQ(id_, right_frame_.id_);
@@ -51,7 +69,8 @@ StereoFrame::StereoFrame(const FrameId &id, const Timestamp &timestamp,
       left_frame_(id, timestamp, cam_param_left, left_image),
       right_frame_(id, timestamp, cam_param_right, right_image),
       is_rectified_(FLAGS_images_rectified), is_keyframe_(false),
-      sparse_stereo_params_(stereo_matching_params), baseline_(0.0) {
+      sparse_stereo_params_(stereo_matching_params), baseline_(0.0),
+      is_B_Pose_initialized(false){
   initialize(cam_param_left, cam_param_right);
   CHECK_EQ(id_, left_frame_.id_);
   CHECK_EQ(id_, right_frame_.id_);
@@ -75,8 +94,9 @@ void StereoFrame::initialize(const CameraParams &cam_param_left,
             .x();
   } else {
     // TODO(Toni): the undistRect maps should be computed once and cached!!
-    computeRectificationParameters(&left_frame_.cam_param_,
-                                   &right_frame_.cam_param_, &B_Pose_camLrect_);
+    if (!is_B_Pose_initialized)
+      computeRectificationParameters(&left_frame_.cam_param_,
+                                     &right_frame_.cam_param_, &B_Pose_camLrect_);
     // TODO REMOVE ASSUMPTION ON x aligned stereo camera, can't we just take the
     // norm?
     baseline_ = left_frame_.cam_param_.body_Pose_cam_

@@ -30,7 +30,7 @@ DataProviderModule::DataProviderModule(
       left_frame_queue_("data_provider_left_frame_queue"),
       right_frame_queue_("data_provider_right_frame_queue"),
       stereo_matching_params_(stereo_matching_params),
-      timestamp_last_frame_(kNoFrameYet) {}
+      timestamp_last_frame_(kNoFrameYet){}
 
 DataProviderModule::InputUniquePtr DataProviderModule::getInputPacket() {
   // Look for a left frame inside the queue.
@@ -152,13 +152,23 @@ DataProviderModule::InputUniquePtr DataProviderModule::getInputPacket() {
 
   if (!shutdown_) {
     CHECK(vio_pipeline_callback_);
+    if (is_first_frame){
+      first_frame = new StereoFrame(
+          left_frame_payload->id_,
+          timestamp,
+          *left_frame_payload,
+          *right_frame_payload,
+          stereo_matching_params_);
+      is_first_frame = false;
+    }
     vio_pipeline_callback_(VIO::make_unique<StereoImuSyncPacket>(
         StereoFrame(
             left_frame_payload->id_,
             timestamp,
             *left_frame_payload,
             *right_frame_payload,
-            stereo_matching_params_),  // TODO(Toni): these params should
+            stereo_matching_params_,
+            first_frame),  // TODO(Toni): these params should
         // be given in PipelineParams.
         imu_meas.timestamps_,
         imu_meas.acc_gyr_));
