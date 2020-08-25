@@ -75,7 +75,7 @@ Make build dir, and run `cmake`:
 cd gtsam
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release -DGTSAM_USE_SYSTEM_EIGEN=OFF -DGTSAM_POSE3_EXPMAP=ON -DGTSAM_ROT3_EXPMAP=ON ..
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release -DGTSAM_USE_SYSTEM_EIGEN=OFF -DGTSAM_POSE3_EXPMAP=ON -DGTSAM_ROT3_EXPMAP=ON .. #DGTSAM_WITH_TBB=OFF for seq mode
 ```
 
 Ensure that:
@@ -115,7 +115,7 @@ cd opencv
 git checkout tags/3.3.1
 mkdir build
 cd build
-cmake -DWITH_VTK=On .. # Use -DWITH_TBB=On if you have TBB
+cmake -DWITH_VTK=On .. # Use -DWITH_TBB=On if you have TBB #sudo cmake .. -DWITH_VTK=On -DWITH_IPP=OFF -DWITH_TBB=OFF -DWITH_OPENMP=OFF -DWITH_PTHREADS_PF=OFF -DCUDA_NVCC_FLAGS=--expt-relaxed-constexpr for sequantial mode
 ```
 
 Finally, build and install OpenCV:

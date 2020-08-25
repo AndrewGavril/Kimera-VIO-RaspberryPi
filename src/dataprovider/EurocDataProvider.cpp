@@ -125,50 +125,11 @@ bool EurocDataProvider::spinOnce() {
     LOG(INFO) << "Finished spinning Euroc dataset.";
     return false;
   }
-
-  const CameraParams& left_cam_info = pipeline_params_.camera_params_.at(0);
-  const CameraParams& right_cam_info = pipeline_params_.camera_params_.at(1);
-  const bool& equalize_image =
-      pipeline_params_.frontend_params_.stereo_matching_params_.equalize_image_;
-
-  const Timestamp& timestamp_frame_k = timestampAtFrame(current_k_);
-  VLOG(10) << "Sending left/right frames k= " << current_k_
-           << " with timestamp: " << timestamp_frame_k;
-
-  // TODO(Toni): ideally only send cv::Mat raw images...:
-  // - pass params to vio_pipeline ctor
-  // - make vio_pipeline actually equalize or transform images as necessary.
-  std::string left_img_filename;
-  bool available_left_img = getLeftImgName(current_k_, &left_img_filename);
-  std::string right_img_filename;
-  bool available_right_img = getRightImgName(current_k_, &right_img_filename);
-  if (available_left_img && available_right_img) {
     // Both stereo images are available, send data to VIO
-    CHECK(left_frame_callback_);
-    left_frame_callback_(
-        VIO::make_unique<Frame>(current_k_,
-                                timestamp_frame_k,
-                                // TODO(Toni): this info should be passed to
-                                // the camera... not all the time here...
-                                left_cam_info,
-                                UtilsOpenCV::ReadAndConvertToGrayScale(
-                                    left_img_filename, equalize_image)));
-    CHECK(right_frame_callback_);
-    right_frame_callback_(
-        VIO::make_unique<Frame>(current_k_,
-                                timestamp_frame_k,
-                                // TODO(Toni): this info should be passed to
-                                // the camera... not all the time here...
-                                right_cam_info,
-                                UtilsOpenCV::ReadAndConvertToGrayScale(
-                                    right_img_filename, equalize_image)));
-  } else {
-    LOG(ERROR) << "Missing left/right stereo pair, proceeding to the next one.";
-  }
-
-  // This is done directly when parsing the Imu data.
-  // imu_single_callback_(imu_meas);
-
+  CHECK(left_frame_callback_);
+  left_frame_callback_(VIO::make_unique<Frame>(left_camera_frames_[current_k_-initial_k_]));
+  CHECK(right_frame_callback_);
+  right_frame_callback_(VIO::make_unique<Frame>(right_camera_frames_[current_k_-initial_k_]));
   VLOG(10) << "Finished VIO processing for frame k = " << current_k_;
   current_k_++;
   return true;
@@ -187,6 +148,7 @@ void EurocDataProvider::parse() {
     pipeline_params_.backend_params_->initial_ground_truth_state_ =
         getGroundTruthState(timestampAtFrame(initial_k_));
   }
+  parseImages();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -445,6 +407,32 @@ bool EurocDataProvider::parseCameraData(const std::string& cam_name,
   CHECK_NOTNULL(cam_list_i)
       ->parseCamImgList(dataset_path_ + "/mav0/" + cam_name, "data.csv");
   return true;
+}
+
+/* -------------------------------------------------------------------------- */
+void EurocDataProvider::parseImages() {
+  for (FrameId k = initial_k_; k <= final_k_; k++) {
+    const bool& equalize_image =
+      pipeline_params_.frontend_params_.stereo_matching_params_.equalize_image_;
+    const Timestamp& timestamp_frame_k = timestampAtFrame(k);
+    std::string left_img_filename;
+    bool available_left_img = getLeftImgName(k, &left_img_filename);
+    std::string right_img_filename;
+    bool available_right_img = getRightImgName(k, &right_img_filename);
+    if (available_left_img && available_right_img) {
+      left_camera_frames_.push_back(Frame(k,
+                                timestamp_frame_k,
+                                pipeline_params_.camera_params_.at(0),
+                                UtilsOpenCV::ReadAndConvertToGrayScale(
+                                    left_img_filename, equalize_image)));
+      
+      right_camera_frames_.push_back(Frame(k,
+                                timestamp_frame_k,
+                                pipeline_params_.camera_params_.at(1),
+                                UtilsOpenCV::ReadAndConvertToGrayScale(
+                                    right_img_filename, equalize_image)));
+    }  
+  }
 }
 
 /* -------------------------------------------------------------------------- */
