@@ -117,6 +117,7 @@ class DataProviderModule
 
  private:
   //! Input data
+  bool is_first_frame = true;
   ImuData imu_data_;
   ThreadsafeQueue<Frame::UniquePtr> left_frame_queue_;
   ThreadsafeQueue<Frame::UniquePtr> right_frame_queue_;
@@ -125,6 +126,7 @@ class DataProviderModule
   // TODO(Toni): remove these below
   StereoMatchingParams stereo_matching_params_;
   VioPipelineCallback vio_pipeline_callback_;
+  VIO::StereoFrame *first_frame = nullptr;
 };
 
 }  // namespace VIO

@@ -63,6 +63,13 @@ class StereoFrame {
               const Frame& right_frame,
               const StereoMatchingParams& stereo_matching_params);
 
+  StereoFrame(const FrameId& id,
+              const Timestamp& timestamp,
+              const Frame& left_frame,
+              const Frame& right_frame,
+              const StereoMatchingParams& stereo_matching_params,
+              StereoFrame *first_frame);
+
   void initialize(const CameraParams& cam_param_left,
                   const CameraParams& cam_param_right);
 
@@ -233,6 +240,7 @@ class StereoFrame {
 
   bool is_rectified_;  // make sure to do that on each captured image
   bool is_keyframe_;
+  bool is_B_Pose_initialized = false;
 
   StereoMatchingParams sparse_stereo_params_;
 
