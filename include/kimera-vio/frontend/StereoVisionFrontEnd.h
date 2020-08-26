@@ -13,6 +13,7 @@
  */
 
 #pragma once
+#define MAX_SEQ_LEN_BEFORE_KEYFRAME 2
 
 #include <memory>
 
@@ -273,7 +274,7 @@ class StereoVisionFrontEnd {
 
   // Keyframe counters
   unsigned int keyframe_mark_count_;
-  const static unsigned int FRAMES_BEFORE_KEYFRAME = 4;
+  const static unsigned int FRAMES_BEFORE_KEYFRAME = MAX_SEQ_LEN_BEFORE_KEYFRAME;
 
   // Frontend logger.
   std::unique_ptr<FrontendLogger> logger_;

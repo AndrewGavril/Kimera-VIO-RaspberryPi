@@ -36,7 +36,6 @@ DEFINE_string(
     "Path to the folder containing the yaml files with the VIO parameters.");
 
 int main(int argc, char* argv[]) {
-  cv::setNumThreads(0);
   // Initialize Google's flags library.
   google::ParseCommandLineFlags(&argc, &argv, true);
   // Initialize Google's logging library.
@@ -100,6 +99,7 @@ int main(int argc, char* argv[]) {
     handle_shutdown.get();
     handle_pipeline.get();
   } else {
+    cv::setNumThreads(0);
     while (dataset_parser->spin() && vio_pipeline.spin()) {
       LOG(INFO) << vio_pipeline.printStatistics();
       continue;
