@@ -75,7 +75,7 @@ Make build dir, and run `cmake`:
 cd gtsam
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release -DGTSAM_USE_SYSTEM_EIGEN=OFF -DGTSAM_POSE3_EXPMAP=ON -DGTSAM_ROT3_EXPMAP=ON .. #DGTSAM_WITH_TBB=OFF for seq mode
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Release -DGTSAM_USE_SYSTEM_EIGEN=OFF -DGTSAM_POSE3_EXPMAP=ON -DGTSAM_ROT3_EXPMAP=ON ..
 ```
 
 Ensure that:
@@ -83,6 +83,8 @@ Ensure that:
 - Compilation is in Release mode: check for `--   Build type                     : Release` after running `cmake`.
 - Use GTSAM's Eigen, **not** the system-wide one (OpenGV and GTSAM must use same Eigen, see OpenGV install instructions below).
 - `Rot3 retract is full ExpMap` is set to enabled, and `Pose3 retract is full ExpMap` is also set to enabled. Without these flags, Kimera-RPGO does not optimize the pose-graph well and may produce incorrect results.
+
+**Note for Raspberry Pi project:** for running the system in sequential mode, also use `#DGTSAM_WITH_TBB=OFF` when running `cmake`.
 
 Compile and install GTSAM:
 ```bash
@@ -115,7 +117,7 @@ cd opencv
 git checkout tags/3.3.1
 mkdir build
 cd build
-cmake -DWITH_VTK=On .. # Use -DWITH_TBB=On if you have TBB #sudo cmake .. -DWITH_VTK=On -DWITH_IPP=OFF -DWITH_TBB=OFF -DWITH_OPENMP=OFF -DWITH_PTHREADS_PF=OFF -DCUDA_NVCC_FLAGS=--expt-relaxed-constexpr for sequantial mode
+cmake -DWITH_VTK=On .. # Use -DWITH_TBB=On if you have TBB
 ```
 
 Finally, build and install OpenCV:
@@ -124,6 +126,11 @@ sudo make -j $(nproc) install
 ```
 
 > Alternatively, replace `$(nproc)` by the number of available cores in your computer.
+
+**Note for Raspberry Pi project:** for sequential mode, the `cmake` command should look like this:
+```bash
+#sudo cmake .. -DWITH_VTK=On -DWITH_IPP=OFF -DWITH_TBB=OFF -DWITH_OPENMP=OFF -DWITH_PTHREADS_PF=OFF -DCUDA_NVCC_FLAGS=--expt-relaxed-constexpr
+```
 
 ## Install OpenGV
 Clone the repo:
