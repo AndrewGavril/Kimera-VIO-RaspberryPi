@@ -12,10 +12,22 @@
 
 # Kimera-VIO: Open-Source Visual Inertial Odometry
 
-[![Build Status](http://ci-sparklab.mit.edu:8080/job/MIT-SPARK-Kimera/job/master/badge/icon)](http://ci-sparklab.mit.edu:8080/job/MIT-SPARK-Kimera/job/master/)
-For evaluation plots, check our [jenkins server](http://ci-sparklab.mit.edu:8080/job/MIT-SPARK-Kimera/job/master/VIO_20Euroc_20Performance_20Report/plots.html#V1_01_easy).
-
 **Authors:** [Antoni Rosinol](https://www.mit.edu/~arosinol/), Yun Chang, Marcus Abate, Sandro Berchier, [Luca Carlone](https://lucacarlone.mit.edu/)
+
+## Current Optimization changes
+
+We have reached the following results in optimizing Kimera for using it on the Raspberry Pi platform:
+
+1. The reading of images from dataset files was transferred from the spin loop in EurocDataProvider to the parse function, so that the files are accessed only during dataset parsing and not on every loop iteration. We have added a parseImages function, which pushes back the images into the left_camera_frames_ and right_camera_frames_ vectors, and the functions for processing the images are later called for the elements of these vectors. These two commits contain this change: https://github.com/AndrewGavril/Kimera-VIO-RaspberryPi/commit/5507c5c875119e309192db1e22000a1a8b20e929, https://github.com/AndrewGavril/Kimera-VIO-RaspberryPi/commit/aa2f8bb7c6425e3bda4120b42f011961c4ddfb9a
+
+2. The compens_by_keyframe branch contains a version of StereoVisionFrontEnd where keyframes are chosen simply every certain interval, defined by the FRAMES_BEFORE_KEYFRAME constant. The value of FRAMES_BEFORE_KEYFRAME is the number of consecutive non-key frames before a keyframe. This version was added in this commit: https://github.com/AndrewGavril/Kimera-VIO-RaspberryPi/commit/d8a443abffe41d2134213fb42115f830d114543f
+
+3. We have listed the parameters (from the params/Euroc folder) that may affect the frame rate. The only one that showed a considerable difference was feature_detector_type in Frontend parameters. FAST type proved more efficient than the default GFTT, while ORB and AGAST do not seem to be correctly implemented at all. The other parameters we checked were:
+    • backend_type and regular_vio_backend_modality in stereoVIOEuroc.flags
+    • linearizationMode and degeneracyMode in BackendParams.yaml
+    • non_max_suppression_type in FrontendParams.yaml
+    4. Image rectification is now only done for the first frame, and the calculations are then used for the next frames as well (implemented in the init_stereoframe_optimization branch).
+All the optimal conditions were added in the optimized_version branch.
 
 ## What is Kimera-VIO?
 
